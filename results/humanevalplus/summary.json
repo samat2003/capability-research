@@ -1,0 +1,74 @@
+{
+  "benchmark": "HumanEval+",
+  "tasks": 164,
+  "bank_size": 8,
+  "ordered_recoverability": {
+    "base": {
+      "1": {"successes": 8, "accuracy": 0.04878048780487805},
+      "2": {"successes": 13, "accuracy": 0.07926829268292683},
+      "4": {"successes": 21, "accuracy": 0.12804878048780488},
+      "8": {"successes": 30, "accuracy": 0.18292682926829268}
+    },
+    "instruct": {
+      "1": {"successes": 119, "accuracy": 0.725609756097561},
+      "2": {"successes": 128, "accuracy": 0.7804878048780488},
+      "4": {"successes": 130, "accuracy": 0.7926829268292683},
+      "8": {"successes": 132, "accuracy": 0.8048780487804879}
+    }
+  },
+  "base_selected_at_8": {
+    "sample0": {"successes": 8, "accuracy": 0.04878048780487805},
+    "self_consistency": {"successes": 8, "accuracy": 0.04878048780487805},
+    "best_fixed": {"successes": 9, "accuracy": 0.054878048780487805},
+    "global_learned_weights": {"successes": 8, "accuracy": 0.04878048780487805},
+    "metaatlas": {"successes": 11, "accuracy": 0.06707317073170732},
+    "metaroute": {"successes": 12, "accuracy": 0.07317073170731707},
+    "direct_verifier": {"successes": 6, "accuracy": 0.036585365853658534},
+    "pool_oracle": {"successes": 30, "accuracy": 0.18292682926829268}
+  },
+  "instruct_selected_at_8": {
+    "sample0": {"successes": 119, "accuracy": 0.725609756097561},
+    "self_consistency": {"successes": 122, "accuracy": 0.7439024390243902},
+    "best_fixed": {"successes": 116, "accuracy": 0.7073170731707317},
+    "global_learned_weights": {"successes": 120, "accuracy": 0.7317073170731707},
+    "metaatlas": {"successes": 117, "accuracy": 0.7134146341463414},
+    "metaroute": {"successes": 114, "accuracy": 0.6951219512195121},
+    "direct_verifier": {"successes": 116, "accuracy": 0.7073170731707317},
+    "pool_oracle": {"successes": 132, "accuracy": 0.8048780487804879}
+  },
+  "primary_paired_tests": {
+    "metaatlas_vs_sample0": {
+      "mean_delta": 0.018292682926829267,
+      "ci95_low": -0.018292682926829267,
+      "ci95_high": 0.06097560975609756,
+      "metaatlas_only": 7,
+      "sample0_only": 4,
+      "mcnemar_p": 0.548828125
+    },
+    "metaatlas_vs_best_fixed": {
+      "mean_delta": 0.012195121951219513,
+      "ci95_low": -0.03048780487804878,
+      "ci95_high": 0.054878048780487805,
+      "metaatlas_only": 7,
+      "best_fixed_only": 5,
+      "mcnemar_p": 0.7744140625
+    }
+  },
+  "base_minus_instruct_ordered_E_k": {
+    "1": -0.6768292682926829,
+    "2": -0.701219512195122,
+    "4": -0.6646341463414634,
+    "8": -0.6219512195121952
+  },
+  "unbiased_pass_at_k": {
+    "1": "withdrawn_pending_exact_recomputation",
+    "2": "withdrawn_pending_exact_recomputation",
+    "4": "withdrawn_pending_exact_recomputation",
+    "8": {
+      "base": 0.18292682926829268,
+      "instruct": 0.8048780487804879,
+      "note": "when k=n=8, pass@8 equals pool recoverability"
+    }
+  },
+  "source_final_sha": "645e89d2846930c74d3f8e85e5a25e6ec1abefdb"
+}
