@@ -26,15 +26,3 @@ jobs:
           python -m json.tool results/internal/project_summary.json >/dev/null
       - name: Run regression tests
         run: pytest -q
-      - name: Recompute archived HumanEvalPlus pass-at-k
-        run: |
-          SOURCE_SHA=645e89d2846930c74d3f8e85e5a25e6ec1abefdb
-          ROOT=https://raw.githubusercontent.com/samat2003/meta-cognition/${SOURCE_SHA}/outputs/v040
-          curl --fail --silent --show-error --location "${ROOT}/eval_base/candidate_outcomes.csv" --output /tmp/base_candidates.csv
-          curl --fail --silent --show-error --location "${ROOT}/eval_instruct/candidate_outcomes.csv" --output /tmp/instruct_candidates.csv
-          python scripts/recompute_archived_humanevalplus.py \
-            --base /tmp/base_candidates.csv \
-            --instruct /tmp/instruct_candidates.csv \
-            --n 8 --k 1 2 4 8 \
-            --out /tmp/corrected_pass_at_k.json
-          cat /tmp/corrected_pass_at_k.json
