@@ -1,0 +1,75 @@
+{
+  "study": "final-public-transfer",
+  "source": {
+    "starting_x9_sha": "ab1b978c12ef713a70ec7afc4a1746cd9ed21020",
+    "implementation_sha": "f46b5b504e6ccb56597b86ab72f56057d7c9bff3",
+    "pre_eval_frozen_sha": "bbdad096d67d39a8564ba4eb1f9fab474e384728",
+    "final_result_sha": "645e89d2846930c74d3f8e85e5a25e6ec1abefdb"
+  },
+  "benchmark": {
+    "name": "EvalPlus HumanEval+",
+    "evalplus_version": "0.3.1",
+    "evalplus_release_commit": "e5d0ed0",
+    "humanevalplus_release": "v0.1.10",
+    "tasks": 164,
+    "dataset_md5": "fe585eb4df8c88d844eeb463ea4d0302",
+    "public_task_json_sha256": "88707ade34a269bd1e038ddd8cdf12bbb71de115491520f777cebc581f64905e"
+  },
+  "models": {
+    "base": {
+      "name": "Qwen/Qwen2.5-7B",
+      "revision": "d149729398750b98c0af14eb82c78cfe92750796",
+      "prompt_interface": "official HumanEval completion prompt"
+    },
+    "instruct": {
+      "name": "Qwen/Qwen2.5-7B-Instruct",
+      "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+      "prompt_interface": "native chat template containing the same HumanEval problem content"
+    }
+  },
+  "backbone": {
+    "dtype": "bfloat16",
+    "quantization": null,
+    "weights_changed": false
+  },
+  "sampling": {
+    "kmax": 8,
+    "nested_k": [1, 2, 4, 8],
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "max_new_tokens": 384,
+    "seed": 400401
+  },
+  "representation_replay": {
+    "projection_dim": 32,
+    "projection_seed": 390309,
+    "labels_stored_in_heldout_archive": false
+  },
+  "selector_parameters": {
+    "metaatlas_neighbor_tasks": 24,
+    "metaatlas_reliability_tasks": 12,
+    "metaatlas_top_views": 6,
+    "metaatlas_min_class_examples": 4,
+    "metaroute_top_views": 4
+  },
+  "selector_artifact_sha256": {
+    "base_router": "a69bcad632a2e5ceb21c8e8c6845ec6239b0e261ca36f7ee6b1338bb266c4ad7",
+    "instruct_router": "0138ba767ba374fe628afc27a87bb8a959b63178b489acacd8fcc0ba3d006da9",
+    "base_direct_verifier": "559a2081c09236938d6d0c273a40bba7d20af9e5e90883a0ec4e0d9df22c3f89",
+    "base_global_weights": "2825e95479d7655e0f0e05eeab1f63aa288fd0bb4d07c07582f053ee5876d7bc"
+  },
+  "primary_hypotheses": [
+    "Base MetaAtlas selected@8 exceeds Base sample0",
+    "Base MetaAtlas selected@8 exceeds Base best-fixed selected@8"
+  ],
+  "bootstrap_replicates": 20000,
+  "selection_uses_humaneval_labels": false,
+  "post_freeze_tuning": false,
+  "publication_correction": {
+    "withdraw_archived_unbiased_pass_at_k_for": [1, 2, 4],
+    "reason": "archived audit counted successes in the ordered k-prefix instead of the complete n=8 bank",
+    "ordered_recoverability_unaffected": true,
+    "selected_at_8_unaffected": true,
+    "pass_at_8_unaffected": true
+  }
+}
