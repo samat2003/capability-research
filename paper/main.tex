@@ -1,0 +1,379 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{xcolor}
+
+\title{Recoverability Is Not Recognition:\\A Frozen-Language-Model Study of Test-Time Capability Extraction and Hidden-State Selection}
+\author{Author information omitted from this public artifact draft}
+\date{2026}
+
+\newcommand{\Ek}{E_k}
+\newcommand{\pp}{\,\mathrm{pp}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study a narrow question about post-training and inference-time control: when a pretrained language model can already generate a correct solution under sampling, how much of the remaining behavioral gap is due to failure to \emph{recognize} that solution rather than failure to generate it? We formalize ordered $k$-sample \emph{recoverability} separately from conditional \emph{recognition} and evaluate a sequence of frozen-backbone mechanisms using Qwen2.5-7B Base and Qwen2.5-7B-Instruct. On a 400-task mechanically verified internal distribution, a high-compute frozen Base selector reached 61.75\% versus 45.75\% for a one-sample Instruct comparator, but at substantially greater inference compute. Subsequent experiments exposed the limitation behind that result. Near-oracle shortlist coverage did not guarantee recognition; single-pass spectral steering failed causal controls; an all-layer atlas revealed 17.19 percentage points of task-dependent diagnostic representation headroom for Base, yet a nearest-experience selector failed its frozen gate; and a 43,649-parameter learned representation router also failed its preregistered gate. In a final preregistered transfer to all 164 HumanEval+ tasks, Base ordered recoverability rose from 4.88\% at $k=1$ to 18.29\% at $k=8$, while Instruct rose from 72.56\% to 80.49\%. MetaAtlas selected 11/164 correct programs from the Base eight-sample bank, compared with 8/164 for sample~0 and 9/164 for the strongest fixed readout; neither preregistered paired comparison was decisive. The public result also rejects a universal probability-concentration interpretation: unlike the internal tasks, Base and Instruct recoverability remained widely separated under matched sampling. Our results support a decomposition rather than a solved control method: recoverable capability, diagnostic correctness signal, and reliable behavioral recognition are distinct properties.
+\end{abstract}
+
+\section{Introduction}
+
+Post-training can dramatically change the behavior of a language model, but an observed accuracy difference alone does not identify \emph{why}. A post-trained model may generate successful behavior that the pretrained model essentially never reaches, or it may place more probability mass on behaviors that were already reachable but unlikely. These cases have different implications for alignment, model evaluation, and test-time scaling.
+
+Repeated sampling makes this distinction experimentally accessible. If a frozen Base model is poor at one-shot decoding but frequently produces a correct candidate somewhere in a larger bank, then some of its deployment gap is an inference problem rather than an absence-of-support problem. The next question is whether the system can recognize the successful candidate without access to ground truth.
+
+This paper reports a sequential research program designed around that distinction. We deliberately include failed mechanisms. A positive high-compute selector result motivated progressively stricter tests of retrieval, recognition, causal steering, hidden-state diagnostics, adaptive representation selection, and learned routing. The final experiment transfers the strongest frozen recognition mechanisms unchanged to HumanEval+ \cite{liu2023evalplus}.
+
+Our main contribution is empirical and methodological. We separate three propositions that are often conflated:
+
+\begin{enumerate}
+    \item \textbf{Existence:} a correct trajectory occurs in the frozen model's sampling distribution at an achievable test-time budget;
+    \item \textbf{Diagnosis:} generated trajectories carry internal signals correlated with correctness;
+    \item \textbf{Control:} a deployable inference procedure can reliably exploit those signals to choose or cause correct behavior.
+\end{enumerate}
+
+The experiments provide evidence for the first two on several internal distributions. They do not establish the third as a general mechanism.
+
+\paragraph{Claim boundary.}
+We do not claim that frozen inference replaces supervised fine-tuning or reinforcement learning, that Base and Instruct models are universally capability-equivalent, or that our methods are state of the art on public coding benchmarks. The strongest early result uses unequal inference compute. The final public benchmark is negative with respect to the primary recognition-transfer hypotheses.
+
+\section{Formal decomposition}
+
+Let model $M$ generate an ordered bank of trajectories $\tau_1,\ldots,\tau_k$ for task $x$. Define ordered recoverability
+
+\begin{equation}
+E_{M,k}(x)=\mathbf{1}\{\exists j\leq k:\tau_j\text{ is correct}\}.
+\end{equation}
+
+For selector $X$, let $S_X(x)=1$ when the selected candidate is correct. For a fixed candidate budget,
+
+\begin{equation}
+P(S_X=1)=P(E_k=1)P(S_X=1\mid E_k=1),
+\end{equation}
+
+because a selector restricted to the candidate bank cannot succeed when no correct candidate is present. We call
+
+\begin{equation}
+R_X(k)=P(S_X=1\mid E_k=1)
+\end{equation}
+
+\emph{conditional recognition}. This decomposition makes the pool oracle $P(E_k=1)$ an explicit upper bound for any selection-only method operating on that bank.
+
+We also use oracle-gap closure as a diagnostic,
+
+\begin{equation}
+G_X(k)=\frac{A_X(k)-A_1}{E_k-A_1},
+\end{equation}
+
+when $E_k>A_1$, where $A_1$ is the first-sample accuracy and $A_X(k)$ is selector accuracy.
+
+Ordered $E_k$ is distinct from the standard unbiased pass@$k$ estimator introduced in code-generation evaluation \cite{chen2021codex}. Ordered recoverability asks whether the \emph{first} $k$ members of a fixed bank contain a success. Unbiased pass@$k$ estimates the probability that a uniformly selected size-$k$ subset from an $n$-sample bank contains a success. We preserve this distinction throughout.
+
+\section{Experimental setting}
+
+\subsection{Models}
+
+The principal pair is Qwen/Qwen2.5-7B Base and Qwen/Qwen2.5-7B-Instruct. Backbones are evaluated in BF16 without quantization. Unless a small sidecar is explicitly described, language-model weights remain frozen.
+
+The Instruct model is a specific post-trained comparator. We do not use it as a proxy for all SFT, RLHF, RLAIF, DPO, or reasoning-post-training procedures.
+
+\subsection{Internal tasks}
+
+Later internal studies use mechanically verified families including algebra, integer linear systems, modular arithmetic, finite constraints, applied quantitative reasoning, numerical physics, restricted Python expression synthesis, and scheduling. Correctness is determined by deterministic task-specific verifiers rather than an LLM judge.
+
+The internal benchmark is intentionally useful for mechanistic iteration but is synthetic and private. Consequently, it supports within-project causal and paired comparisons but not public state-of-the-art claims.
+
+\subsection{Candidate banks and matched sampling}
+
+Early experiments used larger Base candidate banks than the one-sample Instruct comparator. Beginning with the Metacognitive Atlas study, Base and Instruct are evaluated using the same maximum bank and the same nested ordered prefixes. This is essential for separating one-shot probability concentration from matched-$k$ recoverability.
+
+Self-consistency \cite{wang2022selfconsistency}, best-of-$N$ selection, verifier-based selection, and other leaf-level test-time scaling procedures differ in both compute and statistical structure. Recent work emphasizes reporting the complete inference protocol rather than a scalar ``test-time compute'' label \cite{hariri2026tts}. We therefore report candidate budget, replay/selector compute, and oracle bounds separately where available.
+
+\subsection{Statistics}
+
+Primary selector comparisons are paired at the task level. We report point differences, 20,000-replicate paired task-bootstrap 95\% intervals, and exact two-sided McNemar tests via the exact binomial distribution over discordant cells. Frozen gates determine whether a later confirmation set is opened; failed gates leave confirmation untouched.
+
+\section{Research progression}
+
+Table~\ref{tab:progression} summarizes the sequential experiments. The X-labels are historical development identifiers rather than claims of monotonic improvement.
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{p{1.2cm}p{4.2cm}p{3.7cm}p{5.3cm}}
+\toprule
+Study & Question & Outcome & Main lesson \\
+\midrule
+X5 & Can high-compute frozen selection expose enough Base capability to beat a one-sample Instruct comparator? & Positive internally & Frozen search/recognition can expose substantial capability, but the comparison is unequal-compute. \\
+X6 & Does near-oracle candidate coverage solve selection? & Negative & Retrieval/coverage and recognition are different bottlenecks. \\
+X7 & Is unsupervised spectral hidden-state geometry a useful one-pass causal steering direction? & Negative & Diagnostic-looking geometry did not identify a beneficial causal control direction. \\
+X8 & Is correctness signal task-dependent across depth/time, and can nearest-experience routing exploit it? & Mixed/negative & Large diagnostic view headroom exists; the adaptive selector failed against best-fixed on the frozen gate. \\
+X9 & Can a small learned router predict which hidden representation should be trusted? & Negative & Utility prediction was weak and did not recover the task-specific view oracle gap. \\
+HumanEval+ & Do the strongest frozen recognition mechanisms transfer unchanged to public coding? & Negative/not decisive & Recognition gains did not validate publicly; Base matched-$k$ recoverability remained far below Instruct. \\
+\bottomrule
+\end{tabular}
+\caption{Scientific progression. Failed mechanisms are retained as evidence that existence, diagnosis, and control should not be conflated.}
+\label{tab:progression}
+\end{table*}
+
+\section{High-compute frozen selection}
+
+The strongest positive internal result occurs in X5. On 400 fresh mechanically verified tasks, Base sample~0 achieved 103/400=25.75\%, one-sample Instruct achieved 183/400=45.75\%, and a frozen multi-signal Base selector achieved 247/400=61.75\%. The Base $k=32$ pool oracle was 391/400=97.75\%. X5 minus one-sample Instruct was +16.0 percentage points, with paired bootstrap 95\% CI [+10.25,+21.75] points and exact McNemar $p=1.446\times10^{-7}$.
+
+This result should be interpreted as a test-time capability-extraction result, not equal-compute model superiority. The Base system generated 32 candidates per task and additionally used representation, pairwise, and self-verification compute; Instruct generated one completion.
+
+The large gap between Base sample~0 and $E_{32}$ established the central empirical motivation: on this distribution, much more successful behavior existed in the Base sampling distribution than ordinary one-shot behavior revealed.
+
+\section{Coverage without recognition}
+
+X6 tested whether better candidate retrieval would solve the remaining bottleneck. On a 100-task mechanistic gate, Base scored 26\%, Instruct 48\%, same-pool X5 66\%, X6 62\%, and both the X6 shortlist oracle and the full Base $E_{32}$ were 97\%. Thus the shortlist retained essentially all available successes without producing superior final recognition.
+
+The failure was especially clear on constraint tasks: a correct candidate survived the shortlist on 22/25 tasks, yet X6 selected correctly only 1/25. This is direct evidence that coverage and recognition are distinct.
+
+A separate applied gate demonstrates the complementary regime. Instruct achieved 61/80=76.25\%, while the entire Base $k=32$ pool was recoverable on only 59/80=73.75\%. In that setting, no selector restricted to that Base pool could beat Instruct overall. Recognition cannot compensate for missing recoverability.
+
+\section{Single-pass spectral steering}
+
+X7 asked whether a strict one-trajectory hidden-state intervention could remove the multi-sample compute gap. On 160 fresh tasks, Base scored 44/160=27.50\%, the proposed spectral controller 38/160=23.75\%, a delayed control 41/160=25.63\%, an opposite-direction control 38/160=23.75\%, and Instruct 94/160=58.75\%.
+
+The proposed and opposite directions had identical aggregate accuracy. The experiment therefore provides no evidence that the spectral estimator identified the correct causal direction or intervention timing. This negative result is consistent with independent evidence that hidden states can encode error/correctness information without making the corresponding direction a useful intervention lever \cite{yuan2026errorawareness}.
+
+\section{Metacognitive Atlas: diagnostic representation headroom}
+
+X8 shifted from causal steering to recognition. Every sampled trajectory was replayed through all decoder layers and summarized over multiple temporal views (terminal, full generated mean, early/middle/late, and final-quarter windows), together with adjacent-layer displacement views.
+
+On 128 calibration tasks, the strongest fixed Base view achieved 54.69\% cross-validated task-level selection accuracy at $k=8$, while a diagnostic oracle allowed to choose the best view separately for each task achieved 71.88\%. The difference, +17.19 points, is substantial representation-selection headroom. Instruct showed a smaller but nontrivial gap: 71.09\% fixed versus 78.91\% oracle.
+
+This observation aligns with work showing that correctness-related information can be distributed across hidden-state trajectories rather than isolated in one terminal activation \cite{damirchi2026trajectory,liang2026clue}. Importantly, an oracle view is not itself a deployable verifier; it asks whether better readout choice \emph{could} matter.
+
+MetaAtlas attempted to exploit that headroom without neural selector training. It retrieved similar calibration experiences from prompt representations, estimated local view reliability, and scored candidates relative to success/failure centroids. On the frozen 96-task Base gate at $k=8$, self-consistency scored 32/96=33.33\%, best-fixed 48/96=50.00\%, MetaAtlas 46/96=47.92\%, and pool recoverability was 65/96=67.71\%. MetaAtlas significantly exceeded self-consistency (+14.58 points, 95\% CI [+4.17,+25.00], $p=.01254$) but did not exceed best-fixed (-2.08 points, 95\% CI [-11.46,+7.29], $p=.8238$). The preregistered gate failed and confirmation was not opened.
+
+\subsection{Matched Base/Instruct recoverability}
+
+The X8 gate supplied the first central matched-$k$ comparison. Table~\ref{tab:x8recover} shows that the 27.08-point Base/Instruct gap at $k=1$ shrank to 6.25 points at $k=32$.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rcc}
+\toprule
+$k$ & Base $E_k$ & Instruct $E_k$ \\
+\midrule
+1 & 21.88\% & 48.96\% \\
+2 & 41.67\% & 58.33\% \\
+4 & 50.00\% & 65.63\% \\
+8 & 67.71\% & 75.00\% \\
+16 & 75.00\% & 78.13\% \\
+32 & 79.17\% & 85.42\% \\
+\bottomrule
+\end{tabular}
+\caption{X8 ordered matched-$k$ recoverability. The large one-shot gap contracts under sampling on this internal distribution but does not vanish.}
+\label{tab:x8recover}
+\end{table}
+
+This pattern is consistent with an important probability-concentration component to the Instruct advantage on the tested internal distribution. It is not proof that post-training preserves an identical recoverable capability set.
+
+\section{Learned representation routing}
+
+X9 tested the strongest direct follow-up to the X8 atlas. A 43,649-parameter shared MLP predicted the utility of a layer/time/displacement view from prompt-depth features, unlabeled candidate-bank summaries, a view descriptor, and calibration priors. Its training target was fold-excluded pairwise ranking AUC among the first eight candidates; it did not directly receive candidate correctness as the deployment output.
+
+On a frozen 160-task Base gate, sample~0 scored 22.50\%, self-consistency 35.00\%, best-fixed 45.00\%, global learned view weights 38.13\%, MetaAtlas 59.38\%, MetaRoute 46.88\%, a compact direct correctness verifier 52.50\%, and the task-specific view oracle 73.13\%.
+
+MetaRoute exceeded best-fixed by only +1.875 points with a 95\% interval spanning zero, exceeded global learned weights by +8.75 points, and was 12.50 points below MetaAtlas. The frozen three-way gate therefore failed and the untouched confirmation set was not run.
+
+The view oracle remained 28.13 points above best-fixed, but MetaRoute captured only 6.7\% of that gap. Base gate Spearman correlation between predicted and realized view utility was 0.202; Top-4 oracle-view recall was 21.74\%. The failed router therefore does not show that task-dependent readout is useless. It shows that this representation-utility prediction abstraction did not reliably identify the useful view.
+
+This distinction is relevant to learned latent-control work. Latent Reward Steering, for example, learns a correctness-conditioned latent reward and uses its gradients for adaptive intervention \cite{li2026latent}, while Dr.LLM learns execution routes over transformer blocks under explicit supervision \cite{heakl2026drllm}. MetaRoute instead attempted to learn \emph{where to read} an already-computed frozen trajectory. The negative result narrows, rather than erases, that design space.
+
+\section{Final public transfer to HumanEval+}
+
+\subsection{Protocol}
+
+The final public experiment used EvalPlus 0.3.1 and HumanEval+ v0.1.10 over all 164 tasks \cite{liu2023evalplus}. The protocol was committed before model generation. Base and Instruct each generated one immutable bank of eight candidates per task at temperature 0.8, top-$p$ 0.95, and a 384-token generation cap. Nested $k\in\{1,2,4,8\}$ metrics use prefixes of the same bank.
+
+Selectors were inherited unchanged from the prior internal development stage. The runtime workflow generated candidate banks, replayed hidden representations, wrote and hashed selected candidate indices, and only then invoked the official EvalPlus evaluator. The selector functions receive public prompt/entry-point information, label-free representations, unlabeled bank summaries, and frozen calibration artifacts; evaluator outcomes are attached afterward.
+
+The archived run used EvalPlus's official local evaluator because containerized execution was not available to that runtime account. Future reproductions should use the official containerized path or equivalent sandboxing.
+
+\subsection{Recoverability}
+
+Table~\ref{tab:publicrecover} shows ordered recoverability. Unlike X8 and X9, the Base/Instruct gap remains extremely large under matched sampling.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rccr}
+\toprule
+$k$ & Base $E_k$ & Instruct $E_k$ & Base$-$Instruct \\
+\midrule
+1 & 8/164 = 4.88\% & 119/164 = 72.56\% & -67.68\pp \\
+2 & 13/164 = 7.93\% & 128/164 = 78.05\% & -70.12\pp \\
+4 & 21/164 = 12.80\% & 130/164 = 79.27\% & -66.46\pp \\
+8 & 30/164 = 18.29\% & 132/164 = 80.49\% & -62.20\pp \\
+\bottomrule
+\end{tabular}
+\caption{Final HumanEval+ ordered recoverability. Public coding does not reproduce the internal matched-$k$ convergence.}
+\label{tab:publicrecover}
+\end{table}
+
+This is a central falsification of the strongest version of the probability-concentration hypothesis. On these coding tasks, the specific Instruct model has a large advantage not only in first-sample behavior but also in the probability that a correct program appears anywhere in the eight-sample bank.
+
+\subsection{Frozen Base selection}
+
+Table~\ref{tab:publicselect} gives Base selected@8. Selected@8 is not ordinary leaderboard pass@1; it uses eight generated candidates plus selection compute.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\toprule
+Selector & HumanEval+ selected@8 \\
+\midrule
+sample 0 & 8/164 = 4.88\% \\
+best fixed hidden-state view & 9/164 = 5.49\% \\
+MetaAtlas & 11/164 = 6.71\% \\
+MetaRoute & 12/164 = 7.32\% \\
+direct verifier & 6/164 = 3.66\% \\
+pool oracle & 30/164 = 18.29\% \\
+\bottomrule
+\end{tabular}
+\caption{Base selection from the frozen eight-sample HumanEval+ bank.}
+\label{tab:publicselect}
+\end{table}
+
+The two preregistered public hypotheses concern MetaAtlas. Against sample~0, MetaAtlas improved by 3/164=+1.83 points, with paired bootstrap 95\% CI [-1.83,+6.10] and exact McNemar $p=.5488$ (discordant 7/4). Against best-fixed, the difference was 2/164=+1.22 points, CI [-3.05,+5.49], $p=.7744$ (discordant 7/5). Neither comparison provides decisive evidence of public transfer.
+
+For context, Instruct sample~0 reached 119/164=72.56\%, self-consistency 122/164=74.39\%, and its eight-sample pool oracle 132/164=80.49\%. The hidden-state selectors did not improve the Instruct first-sample result materially.
+
+\subsection{Statistical correction}
+
+A post-publication audit found one secondary aggregation error in the archived HumanEval+ report. The standard unbiased pass@$k$ estimator for an $n$-sample bank with $c$ total correct samples is
+
+\begin{equation}
+\widehat{\mathrm{pass@}k}=1-\frac{\binom{n-c}{k}}{\binom{n}{k}}.
+\end{equation}
+
+The archived audit counted $c$ only inside the ordered first-$k$ prefix and then supplied that count to the $n=8$ estimator. Consequently, the archived unbiased pass@1, pass@2, and pass@4 values are withdrawn. The error does not affect ordered $E_k$, selected@8, the paired primary tests, or pass@8 (where $k=n$ and pass@8 equals pool recoverability). Corrected analysis code and a regression test are included in the public artifact.
+
+\section{Related work}
+
+\paragraph{Test-time scaling.}
+Repeated sampling has long been recognized as an effective way to expose additional code-generation capability \cite{chen2021codex}. Self-consistency selects an answer by agreement across sampled reasoning paths \cite{wang2022selfconsistency}. Modern test-time-scaling work distinguishes sequential deliberation, terminal candidate sampling/selection, and prefix-level search, and emphasizes matching evaluation to the full inference system and compute protocol \cite{hariri2026tts}. Consilience studies verifier-free selection through temporal confidence patterns and demonstrates that naive confidence can fail under difficult search \cite{kong2026consilience}. Our work focuses on the terminal-candidate regime and asks how much of the candidate-bank oracle can be closed using internal signals.
+
+\paragraph{Hidden-state verification.}
+CLUE uses success/failure experience to form non-parametric centroids over activation deltas and shows that hidden-state trajectories can improve verification across reasoning tasks \cite{liang2026clue}. Truth as a Trajectory emphasizes layer-wise displacement rather than static activations \cite{damirchi2026trajectory}. These results motivate our all-layer/time/displacement atlas. Our negative adaptive-routing results complement them: the existence of a discriminative representation does not imply that a task-conditioned system can reliably identify the best readout on a new distribution.
+
+\paragraph{Diagnostic versus causal signal.}
+Hidden Error Awareness reports high diagnostic correctness signal alongside failures of several interventions, explicitly separating readout from causal control \cite{yuan2026errorawareness}. X7 arrives at a compatible boundary through proper/opposite/delayed controls: the proposed geometric signal did not provide a reliable intervention direction. In contrast, Latent Reward Steering trains a latent reward objective and uses gradients to intervene adaptively \cite{li2026latent}. These are different scientific objects: diagnosis, learned objective construction, and causal steering should not be collapsed.
+
+\paragraph{Dynamic routing.}
+Dr.LLM retrofits frozen LLMs with learned routers that decide whether to skip, execute, or repeat blocks under a compute objective \cite{heakl2026drllm}. Our X9 router does not alter the executed transformer path; it predicts the reliability of already-computed readout views. The failed result therefore should not be interpreted as evidence against adaptive depth routing generally.
+
+\paragraph{Public code evaluation.}
+EvalPlus strengthens HumanEval with substantially more tests and catches programs that pass the original benchmark but are functionally wrong \cite{liu2023evalplus}. HumanEval is old enough that contamination remains a concern. LiveCodeBench addresses this by continuously sourcing newer contest problems and explicitly targeting contamination-aware code evaluation \cite{jain2024livecodebench}. We use HumanEval+ as a compact final transfer benchmark and treat LiveCodeBench as future validation rather than a post-hoc second chance after observing the HumanEval+ result.
+
+\section{Discussion}
+
+\subsection{What did the project establish?}
+
+The most robust conclusion is the separation of existence, diagnosis, and control.
+
+\paragraph{Existence can substantially exceed one-shot behavior.}
+On internal tasks, Base one-shot accuracy was often far below the corresponding multi-sample oracle. X5 demonstrates that a nontrivial fraction of that latent headroom can be harvested by an expensive inference controller.
+
+\paragraph{Diagnosis can exist without robust control.}
+X8 finds large task-dependent representation headroom, and several earlier analyses find candidate-level hidden-state signal. Yet X7's causal intervention, X8's non-parametric adaptive readout, and X9's learned representation router all fail their stronger held-out tests.
+
+\paragraph{Recognition is not always the dominant bottleneck.}
+HumanEval+ is decisive on this point. Base $E_8$ is only 18.29\% while Instruct $E_8$ is 80.49\%. Even a perfect Base selector restricted to the eight generated candidates is capped far below the Instruct model. On that distribution, improving recognition alone cannot close the model gap.
+
+\subsection{What does this imply about post-training?}
+
+The internal matched-$k$ curves show that a large one-shot Base/Instruct gap can contract sharply with additional sampling. This is compatible with post-training concentrating probability mass on useful trajectories that Base already reaches with lower probability. The public coding curve shows the opposite regime: matched-$k$ recoverability remains widely separated. Post-training can therefore affect both behavioral probability concentration and the practically reachable support of successful behavior at a given inference budget.
+
+The appropriate engineering question is not ``does post-training create capability or merely reveal it?'' as a universal binary. It is distribution- and budget-specific:
+
+\begin{equation}
+\text{observed gap} = \text{recoverability gap} + \text{recognition/selection effects},
+\end{equation}
+
+with the decomposition evaluated at a specified inference protocol.
+
+\subsection{Implications for model development}
+
+Before retraining a model for a narrowly specified verifiable task, measuring $E_k$ can identify the bottleneck. If $E_k$ is high while $A_1$ is low, improved decoding, verification, or adaptive compute has genuine headroom. If $E_k$ itself is low, selection-only methods are oracle-capped and additional training, tools, retrieval, or model capacity may be necessary.
+
+This diagnostic framing can inform SFT/RL rather than compete with it. Successful trajectories recovered from a frozen model can provide evidence about behaviors already represented in the sampling distribution; post-training can then be evaluated by how it changes both first-sample probability and matched-budget recoverability.
+
+\section{Limitations and threats to validity}
+
+\paragraph{Single principal model family and scale.}
+The study centers on Qwen2.5-7B Base/Instruct. Results may differ by architecture, scale, tokenizer, and post-training recipe.
+
+\paragraph{Internal benchmark construction.}
+The mechanistic task families are deterministic and useful for controlled iteration but synthetic and private. Their matched-$k$ convergence does not generalize to HumanEval+.
+
+\paragraph{Unequal-compute positive result.}
+The strongest positive X5 comparison uses 32 Base samples plus selector compute against one Instruct sample. It is an inference-system result, not an equal-compute model comparison.
+
+\paragraph{Sequential research program.}
+The X-series includes exploratory mechanism development. Later gates were frozen and failed gates stopped confirmation, but the complete project should not be interpreted as one monolithic preregistered confirmatory study.
+
+\paragraph{Public benchmark age.}
+HumanEval+ improves functional testing but inherits HumanEval's age and potential contamination. A temporally refreshed benchmark such as LiveCodeBench is a stronger future test.
+
+\paragraph{Selection timing evidence.}
+The final protocol was committed before generation, and runtime code writes/hashes selection manifests before invoking evaluation. However, the actual selection manifests and evaluator outputs were pushed in the same final result commit. GitHub therefore does not independently timestamp the manifest before evaluation. Future reproduction should commit or externally timestamp the manifest before running tests.
+
+\paragraph{Evaluator isolation.}
+The archived run used the official local EvalPlus evaluator rather than a containerized sandbox. This affects execution safety, not the reported deterministic result logic, but future reproductions should use isolated execution.
+
+\paragraph{Corrected secondary metric.}
+Archived HumanEval+ unbiased pass@1/pass@2/pass@4 values contained an aggregation bug and are withdrawn. Primary public comparisons were unaffected.
+
+\section{Conclusion}
+
+This research began with a positive observation: an expensive frozen inference system could extract substantially better behavior from a pretrained Base model than one-shot decoding suggested. The subsequent negative experiments clarify the boundary of that observation.
+
+A correct trajectory existing in the sampling distribution is not the same as a model knowing how to recognize it. A hidden state containing correctness-related information is not the same as that representation providing a causal steering direction. A task-specific oracle readout being strong is not the same as a learned router being able to identify that readout on unseen tasks.
+
+The final public benchmark further shows that recoverability itself can remain the limiting factor: on HumanEval+, the Base eight-sample oracle is 18.29\%, compared with 80.49\% for Instruct. Thus the project does not support a universal claim that post-training only reallocates probability over an unchanged set of capabilities.
+
+The most defensible conclusion is therefore:
+
+\begin{quote}
+\textbf{Recoverable capability, diagnostic correctness signal, and reliable behavioral recognition are distinct properties. Test-time search can expose hidden headroom, but whether that headroom can replace or complement post-training depends on the task distribution, inference budget, and quality of the recognition mechanism.}
+\end{quote}
+
+The open problem is no longer whether hidden correctness signals exist; substantial prior and present evidence says they often do. The harder problem is when such signals are stable, transferable, and actionable enough to support reliable control.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\appendix
+
+\section{Reproducibility anchors}
+
+The final public protocol was frozen at source SHA
+\texttt{bbdad096d67d39a8564ba4eb1f9fab474e384728}; the final archived result is source SHA
+\texttt{645e89d2846930c74d3f8e85e5a25e6ec1abefdb}. The cleaned artifact records exact Qwen model revisions, EvalPlus version and dataset hash, selector artifact hashes, sampling parameters, and corrected analysis code.
+
+\section{Public paired statistics}
+
+For Base HumanEval+ selected@8, MetaAtlas versus sample~0 had discordant cells 7/4, exact two-sided McNemar $p=.548828125$, and a 20,000-replicate paired task-bootstrap interval [-1.83,+6.10] percentage points. MetaAtlas versus best-fixed had discordant cells 7/5, exact $p=.7744140625$, and interval [-3.05,+5.49] points.
+
+\section{Terminology}
+
+\paragraph{selected@8.}
+Accuracy of a selector that chooses one output from an eight-candidate bank. This is an end-to-end test-time inference-system metric and must not be labeled ordinary pass@1.
+
+\paragraph{pool oracle / $E_k$.}
+Fraction of tasks for which at least one of the ordered first $k$ candidates is correct. This upper-bounds any selection-only procedure restricted to those candidates.
+
+\paragraph{unbiased pass@$k$.}
+The standard subset-sampling estimator computed from the total number of successes among $n$ generated samples. It is a different statistical object from ordered prefix recoverability.
+
+\end{document}
