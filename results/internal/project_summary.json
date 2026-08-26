@@ -1,0 +1,67 @@
+{
+  "model_pair": {
+    "base": "Qwen/Qwen2.5-7B",
+    "instruct": "Qwen/Qwen2.5-7B-Instruct"
+  },
+  "experiments": {
+    "high_compute_selection_x5": {
+      "tasks": 400,
+      "base_sample0": 0.2575,
+      "instruct_sample0": 0.4575,
+      "frozen_selector": 0.6175,
+      "base_E32": 0.9775,
+      "selector_minus_instruct": 0.16,
+      "ci95": [0.1025, 0.2175],
+      "mcnemar_p": 1.446e-7,
+      "equal_compute": false
+    },
+    "coverage_without_recognition_x6": {
+      "mechanistic_gate_tasks": 100,
+      "base": 0.26,
+      "instruct": 0.48,
+      "same_pool_x5": 0.66,
+      "x6": 0.62,
+      "x6_shortlist_oracle": 0.97,
+      "E32": 0.97,
+      "gate_passed": false
+    },
+    "single_pass_spectral_control_x7": {
+      "tasks": 160,
+      "base": 0.275,
+      "proper_control": 0.2375,
+      "delayed_control": 0.25625,
+      "opposite_control": 0.2375,
+      "instruct": 0.5875,
+      "gate_passed": false
+    },
+    "metacognitive_atlas_x8": {
+      "calibration_tasks": 128,
+      "gate_tasks": 96,
+      "base_fixed_calibration": 0.5469,
+      "base_task_view_oracle_calibration": 0.7188,
+      "base_adaptive_view_headroom": 0.1719,
+      "gate_base_self_consistency": 0.3333333333333333,
+      "gate_base_best_fixed": 0.5,
+      "gate_base_metaatlas": 0.4791666666666667,
+      "gate_base_E8": 0.6770833333333334,
+      "gate_passed": false,
+      "base_E32": 0.7916666666666666,
+      "instruct_E32": 0.8541666666666666
+    },
+    "learned_representation_routing_x9": {
+      "train_tasks": 384,
+      "dev_tasks": 96,
+      "gate_tasks": 160,
+      "router_parameters": 43649,
+      "base_best_fixed": 0.45,
+      "base_metaatlas": 0.59375,
+      "base_metaroute": 0.46875,
+      "base_direct_verifier": 0.525,
+      "base_task_view_oracle": 0.73125,
+      "routing_headroom_capture": 0.0667,
+      "gate_passed": false,
+      "base_E32": 0.8875,
+      "instruct_E32": 0.88125
+    }
+  }
+}
