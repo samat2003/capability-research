@@ -1,6 +1,10 @@
-# Recoverability and Recognition in Frozen Language Models
+# Recoverability Is Not Recognition
 
-This repository is the cleaned publication artifact for a sequence of experiments on **capability-preserving behavioral alignment**: when a pretrained language model can already generate a correct solution under sampling, how much of the remaining gap is caused by *recognition*—choosing the right trajectory—rather than by missing recoverable capability?
+> A frozen-language-model study of test-time capability extraction, hidden-state diagnosis, and the limits of inference-time selection.
+
+**[Read the research site](https://samat2003.github.io/capability-research/)** · **[Read audited results](RESULTS.md)** · **[Read the manuscript](paper/main.tex)** · **[Reproduce the public audit](docs/REPRODUCIBILITY.md)**
+
+This repository is the cleaned publication artifact for a sequential study of frozen-language-model inference. It asks: when a pretrained language model can generate a correct solution under sampling, how much of the remaining behavioral gap is caused by selecting that solution rather than by its absence from the sampled candidate bank?
 
 The study uses frozen `Qwen/Qwen2.5-7B` and `Qwen/Qwen2.5-7B-Instruct` backbones. The central decomposition is
 
@@ -37,6 +41,8 @@ The original v0.4.0 audit incorrectly reported unbiased pass@1/pass@2/pass@4 by 
 - [`results/`](results/) — compact audited aggregate results.
 - [`src/capability_research/`](src/capability_research/) — corrected metric and audit utilities.
 - [`tests/`](tests/) — tests for the recoverability/pass@k distinction.
+- [`docs/index.html`](docs/index.html) — source for the GitHub Pages research site.
+- [`docs/BRANCH_RECONCILIATION.md`](docs/BRANCH_RECONCILIATION.md) — how every historical `meta-cognition` branch maps into the canonical publication record.
 
 ## Claim boundary
 
@@ -45,3 +51,11 @@ This work does **not** establish a universal replacement for SFT/RL, universal B
 ## Provenance
 
 The final source experiment was preregistered at source commit `bbdad096d67d39a8564ba4eb1f9fab474e384728` and reported at source commit `645e89d2846930c74d3f8e85e5a25e6ec1abefdb`. This repository is intentionally a clean publication artifact rather than a copy of the historical development Git history.
+
+## Publication checklist
+
+1. Push this repository's `main` branch to GitHub.
+2. In **Settings → Pages**, select **GitHub Actions** as the source. The included workflow deploys `docs/` to `https://samat2003.github.io/capability-research/`.
+3. Confirm the site URL and repository metadata render correctly, then add the final PDF or archival DOI if one becomes available.
+
+The manuscript draft remains the scientific source of record. Do not replace the withdrawn HumanEval+ unbiased pass@1/pass@2/pass@4 values without the complete candidate-outcome files and an exact recomputation.

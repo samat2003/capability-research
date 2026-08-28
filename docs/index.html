@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recoverability Is Not Recognition | Samat Zharassov</title>
+  <meta name="description" content="A frozen-language-model study separating recoverable capability, hidden-state diagnosis, and reliable inference-time recognition.">
+  <meta name="author" content="Samat Zharassov">
+  <meta name="theme-color" content="#09131f">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Recoverability Is Not Recognition">
+  <meta property="og:description" content="A rigorous study of recoverable capability, hidden-state diagnosis, and the limits of frozen-model control.">
+  <meta property="og:url" content="https://samat2003.github.io/capability-research/">
+  <meta property="og:image" content="https://samat2003.github.io/capability-research/og.png">
+  <meta property="og:image:alt" content="Recoverability Is Not Recognition - Frozen-language-model study, 2026">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Recoverability Is Not Recognition">
+  <meta name="twitter:description" content="A frozen-language-model study of test-time capability extraction and hidden-state selection.">
+  <meta name="twitter:image" content="https://samat2003.github.io/capability-research/og.png">
+  <link rel="canonical" href="https://samat2003.github.io/capability-research/">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="wordmark" href="#top">R ≠ R</a>
+    <nav aria-label="Primary navigation">
+      <a href="#findings">Findings</a><a href="#timeline">Studies</a><a href="#methods">Methods</a><a href="#reproduce">Reproduce</a>
+    </nav>
+    <a class="nav-code" href="https://github.com/samat2003/capability-research">Repository ↗</a>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="title">
+      <p class="eyebrow">Research artifact · 2026</p>
+      <h1 id="title">Recoverability<br>is not recognition.</h1>
+      <p class="lede">A sequential frozen-language-model study of what sampling can expose, what hidden states can diagnose, and what inference-time selection still cannot reliably control.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/samat2003/capability-research/blob/main/paper/main.tex">Read manuscript</a><a class="button" href="https://github.com/samat2003/capability-research/blob/main/RESULTS.md">Audited results</a></div>
+      <dl class="hero-facts"><div><dt>Models</dt><dd>Qwen2.5-7B Base / Instruct</dd></div><div><dt>Final transfer</dt><dd>HumanEval+ · 164 tasks</dd></div><div><dt>Protocol</dt><dd>Frozen backbones · immutable banks</dd></div></dl>
+    </section>
+
+    <section class="statement" aria-label="Research question">
+      <p class="eyebrow">The question</p>
+      <p class="statement-copy">When a frozen model produces a correct trajectory somewhere in a sampled bank, can it <em>recognize</em> that trajectory well enough to deploy it?</p>
+      <div class="formula"><span>E<sub>k</sub></span><b>existence</b><i>→</i><span>R<sub>X</sub></span><b>diagnosis</b><i>→</i><span>S<sub>X</sub></span><b>control</b></div>
+      <p class="caption">These are separate empirical propositions. A correct candidate can exist without a reliable selection rule; a hidden-state signal can diagnose correctness without furnishing a useful causal control direction.</p>
+    </section>
+
+    <section id="findings" class="section findings">
+      <div class="section-intro"><p class="eyebrow">Evidence, not a leaderboard claim</p><h2>Three findings define the contribution.</h2></div>
+      <div class="finding-grid">
+        <article><p class="number">01</p><h3>Sampling can expose substantial headroom.</h3><p>On the 400-task internal distribution, Base one-sample accuracy was 25.75%; its 32-sample pool oracle was 97.75%. The high-compute X5 selector reached 61.75%, above a 45.75% one-sample Instruct comparator.</p><p class="note">Unequal inference compute: this is not a model-superiority comparison.</p></article>
+        <article><p class="number">02</p><h3>Diagnostic signal is not deployable control.</h3><p>X8 found 17.19 percentage points of Base task-specific representation-selection headroom. Yet X7 causal steering, X8 nearest-experience selection, and X9 learned routing all failed their stronger frozen gates.</p><p class="note">Diagnostic oracle views are analysis tools, not deployable verifiers.</p></article>
+        <article><p class="number">03</p><h3>Public transfer sets a sharp limit.</h3><p>On all HumanEval+ tasks, Base ordered recoverability reached 18.29% at k=8; Instruct reached 80.49%. MetaAtlas selected 11/164 Base programs, and neither preregistered primary comparison was decisive.</p><p class="note">Recognition cannot recover behavior absent from the candidate bank.</p></article>
+      </div>
+    </section>
+
+    <section class="section results" aria-labelledby="public-result"><div class="section-intro"><p class="eyebrow">Final public transfer</p><h2 id="public-result">Matched sampling did not erase the HumanEval+ gap.</h2><p>Ordered recoverability from the same frozen eight-sample protocol. Each bar is the share of 164 tasks with at least one correct program in the ordered prefix.</p></div>
+      <div class="chart" role="img" aria-label="HumanEval+ ordered recoverability: Base rises from 4.88 percent at k 1 to 18.29 percent at k 8; Instruct rises from 72.56 percent to 80.49 percent.">
+        <div class="legend"><span><i class="base"></i>Base</span><span><i class="instruct"></i>Instruct</span></div>
+        <div class="chart-row"><b>k = 1</b><div class="bar"><span class="base" style="width:4.88%">4.88%</span><span class="instruct" style="width:72.56%">72.56%</span></div></div>
+        <div class="chart-row"><b>k = 2</b><div class="bar"><span class="base" style="width:7.93%">7.93%</span><span class="instruct" style="width:78.05%">78.05%</span></div></div>
+        <div class="chart-row"><b>k = 4</b><div class="bar"><span class="base" style="width:12.80%">12.80%</span><span class="instruct" style="width:79.27%">79.27%</span></div></div>
+        <div class="chart-row"><b>k = 8</b><div class="bar"><span class="base" style="width:18.29%">18.29%</span><span class="instruct" style="width:80.49%">80.49%</span></div></div>
+      </div>
+      <p class="caption">This falsifies a universal probability-concentration interpretation on this public coding distribution. It does not identify which post-training component produced the difference.</p>
+    </section>
+
+    <section id="timeline" class="section"><div class="section-intro"><p class="eyebrow">Sequential program</p><h2>Every experiment remains in the record.</h2><p>The X-labels are historical development identifiers, not a ranking of mechanisms.</p></div>
+      <ol class="timeline"><li><b>X5</b><div><h3>High-compute frozen selection</h3><p><strong>Positive internally.</strong> A frozen Base system extracted more correct behavior than a one-sample Instruct comparator, at substantially greater inference compute.</p></div></li><li><b>X6</b><div><h3>Coverage without recognition</h3><p><strong>Negative.</strong> Near-oracle shortlist coverage did not produce reliable final selection.</p></div></li><li><b>X7</b><div><h3>Single-pass spectral steering</h3><p><strong>Negative.</strong> Proper and opposite intervention directions had identical aggregate accuracy.</p></div></li><li><b>X8</b><div><h3>Metacognitive Atlas</h3><p><strong>Mixed / negative.</strong> Task-dependent diagnostic headroom existed; adaptive nearest-experience routing failed against the best fixed view.</p></div></li><li><b>X9</b><div><h3>Learned MetaRoute</h3><p><strong>Negative.</strong> The 43,649-parameter router weakly predicted view utility and failed its preregistered gate.</p></div></li><li><b>Public</b><div><h3>HumanEval+ transfer</h3><p><strong>Not decisive.</strong> MetaAtlas did not decisively beat sample 0 or best fixed; Base recoverability remained far below Instruct.</p></div></li></ol>
+    </section>
+
+    <section id="methods" class="section method"><div class="section-intro"><p class="eyebrow">Methods and safeguards</p><h2>Measurement precedes interpretation.</h2></div><div class="method-grid"><div><h3>Frozen protocol</h3><p>Qwen2.5-7B Base and Instruct were evaluated in BF16 without quantization. Public transfer used one immutable eight-candidate bank per task, temperature 0.8, top-p 0.95, and nested ordered prefixes.</p></div><div><h3>Mechanical evaluation</h3><p>Internal tasks use deterministic task-specific verifiers. HumanEval+ uses EvalPlus 0.3.1 on the full 164-task set. Selector outputs were written and hashed before evaluator outcomes were attached.</p></div><div><h3>Paired inference</h3><p>Primary selector comparisons use task-level paired bootstrap intervals (20,000 replicates) and exact two-sided McNemar tests. Failed gates leave confirmation sets untouched.</p></div><div><h3>Metric correction</h3><p>Ordered recoverability is not unbiased pass@k. Archived HumanEval+ unbiased pass@1, pass@2, and pass@4 are explicitly withdrawn; selected@8 and the primary paired tests are unaffected.</p></div></div></section>
+
+    <section id="reproduce" class="section reproduce"><div><p class="eyebrow">Open research artifact</p><h2>Trace each result to its source.</h2><p>The repository contains compact audited aggregates, frozen protocol summaries, code for the corrected metric distinction, and regression tests.</p></div><div class="link-list"><a href="https://github.com/samat2003/capability-research/blob/main/RESULTS.md">Audited results <span>→</span></a><a href="https://github.com/samat2003/capability-research/blob/main/docs/REPRODUCIBILITY.md">Reproducibility anchors <span>→</span></a><a href="https://github.com/samat2003/capability-research/blob/main/docs/STATISTICAL_CORRECTION.md">Statistical correction <span>→</span></a><a href="https://github.com/samat2003/capability-research/blob/main/docs/CLAIM_MATRIX.md">Claim matrix <span>→</span></a><a href="https://github.com/samat2003/capability-research/blob/main/docs/BRANCH_RECONCILIATION.md">Branch reconciliation <span>→</span></a></div></section>
+
+    <section class="section limitations"><p class="eyebrow">Limits and next tests</p><h2>What this study does not establish.</h2><ul><li>It does not establish a general frozen-model control mechanism or a replacement for post-training.</li><li>Its internal benchmark is synthetic and private; it supports controlled comparisons, not public benchmark leadership.</li><li>The strongest X5 result uses unequal inference compute.</li><li>HumanEval+ is an aged benchmark; a preregistered, contamination-aware evaluation such as LiveCodeBench is the next appropriate test, without tuning this completed project on it.</li><li>The archived public run used EvalPlus's local evaluator rather than an isolated container; future reproductions should use official sandboxing or an equivalent isolated path.</li></ul></section>
+  </main>
+  <footer><div><strong>Recoverability Is Not Recognition</strong><p>Independent research by Samat Zharassov</p></div><p>© 2026 · <a href="https://github.com/samat2003">GitHub</a> · <a href="https://github.com/samat2003/capability-research">Source</a></p></footer>
+</body>
+</html>
